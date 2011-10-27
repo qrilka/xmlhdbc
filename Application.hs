@@ -12,7 +12,7 @@ import Yesod.Logger (Logger)
 import Yesod.Default.Main (defaultRunner, defaultDevelApp)
 
 import Data.Dynamic (Dynamic, toDyn)
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 
 import Data.Pool
 import qualified Database.HDBC as H
@@ -47,26 +47,27 @@ inDbPool pool f =
     H.commit conn
     return result
 
-inXmlTxn :: (MonadIO m, Functor m) => (H.Connection -> IO a) -> GGHandler sub XmlHDBC m a
+inXmlTxn :: (MonadIO m, Functor m) => 
+            (H.Connection -> Context -> IO a) -> GGHandler sub XmlHDBC m a
 inXmlTxn f = do
   XmlHDBC{getPool=pool, getContext=ctx} <- getYesod
-  liftIO $ inDbPool pool f
+  liftIO $ inDbPool pool $ \conn -> f conn ctx
 
 getHomeR :: Handler RepHtml
 getHomeR = defaultLayout [whamlet|Hello World!|]
 
 getListTableR :: Text -> Handler RepXml
 getListTableR table = do
-  x <- inXmlTxn $ \c ->
-    H.getTables c
-  return $ RepXml $ toContent ("<foo>" ++ (show x) ++ "</foo>")
+  x <- inXmlTxn $ \conn ctx ->
+    doSelectFromTable conn ctx (unpack table) []
+  return $ RepXml $ toContent x --("<foo>" ++ (show x) ++ "</foo>")
 
 withXmlHDBC :: AppConfig DefaultEnv -> Logger -> (Application -> IO ()) -> IO ()
 withXmlHDBC conf logger f = do
   let connect = H.connectPostgreSQL "dbname=rfid" 
       disconnect = H.disconnect
   createPool connect disconnect 10 $ \p -> do
-    ctx <- inDbPool p newContext
+    ctx <- inDbPool p $ \conn -> newContext conn []
     let h = XmlHDBC conf logger p ctx
     defaultRunner f h
 
