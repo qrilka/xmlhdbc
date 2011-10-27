@@ -1,0 +1,24 @@
+Default: &defaults
+  user: pg
+  password: pg
+  host: localhost
+  port: 5432
+  database: pg
+  poolsize: 10
+
+Development:
+  <<: *defaults
+
+Test:
+  database: pg_test
+  <<: *defaults
+
+Staging:
+  database: pg_staging
+  poolsize: 100
+  <<: *defaults
+
+Production:
+  database: pg_production
+  poolsize: 100
+  <<: *defaults
