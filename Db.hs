@@ -49,6 +49,14 @@ tosql :: String -> SqlValue
 tosql "\\NULL" = SqlNull
 tosql x        = toSql x
 
+ofSql :: SqlValue -> Maybe String
+ofSql SqlNull = Nothing
+ofSql x = Just $ fromSql x
+
+nullableStringOfRS :: [[SqlValue]] -> Maybe String
+nullableStringOfRS ((x:_):_) = ofSql x  
+nullableStringOfRS _ = Nothing
+
 xmlOfCol :: SqlValue -> String
 xmlOfCol = fromSql
 
@@ -112,7 +120,7 @@ makeInsert table values =
 
 makeUpdate :: String -> [(String, String)] -> [String] -> (String, [String]) 
 makeUpdate table values keys =
-    let (keys', values') = partition (\(k,v) -> k `elem` keys) values
+    let (keys', values') = partition (\(k,_) -> k `elem` keys) values
     in let (sets, binds)     = qparts ", " values'
     in let (clauses, binds') = qparts " and " keys'
     in ("update " ++ table ++ " set " 
@@ -157,3 +165,8 @@ doDeleteFromTable conn ctx table values = do
     let (sql, binds) = makeDelete table values keys
     _ <- quickQuery' conn sql (map tosql binds)
     return ()
+
+doSelectFunP :: Connection -> String -> [String] -> IO [[SqlValue]]
+doSelectFunP conn fname args = quickQuery' conn sql (map tosql args)
+    where sql = printf "select %s(%s)" fname $ intercalate "," ["?"|_ <- args]
+

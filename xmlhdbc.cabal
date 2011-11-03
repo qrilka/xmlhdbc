@@ -60,6 +60,7 @@ Library
     exposed-modules: Application
     other-modules:   Main
                      Db
+                     Auth
 
     ghc-options:   -Wall -threaded -O0
 
@@ -88,3 +89,7 @@ Executable         xmlhdbc
                      , monad-control                 >= 0.2        && < 0.3
                      , transformers                  >= 0.2        && < 0.3
                      , containers                    >= 0.4        && < 0.5
+                     , stm                           >= 2.2        && < 2.3
+                     , bytestring                    >= 0.9        && < 0.10
+                     , http-types                    >= 0.6        && < 0.7
+
